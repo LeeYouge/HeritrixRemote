@@ -13,10 +13,15 @@ HeritrixRemote
 
 ##2. Requirements
 
-* JDK 1.6 - *to run this stuff*
-* Heritrix 3.x - *you will control this*
-* cURL - *need to communicate with Heritrix*
+* installed **JDK 1.6** or newer - *to run this stuff*
+* installed **cURL** - *need to communicate with Heritrix*
+* running **Heritrix 3.x** - *you will control this*
+
 
 ##3. User Guide
 
 (soon)
+
+##4. Additional information
+
+This application is based on [Heritrix 3.x API Guide](https://webarchive.jira.com/wiki/display/Heritrix/Heritrix+3.x+API+Guide).

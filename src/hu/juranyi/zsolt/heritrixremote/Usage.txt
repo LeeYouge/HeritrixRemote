@@ -1,0 +1,66 @@
+Usage:
+~~~~~~
+    java -jar HeritrixRemote.jar %1 %2 %3 %4 [%5]
+
+        %1 = Heritrix host and port, like "localhost:8443"
+        %2 = Heritrix username and password, like "admin:admin"
+        %3 = command (see below)
+        %4 = job identifier or job filter (see below)
+        %5 = additional arguments (command specific)
+
+
+Job identifier:
+~~~~~~~~~~~~~~~
+
+To identify a job, specify its first seed URL.
+
+Examples:
+    HeritrixRemote.jar localhost:8443 admin:admin status http://www.site.com/
+    HeritrixRemote.jar localhost:8443 admin:admin pause http://www.site.com/
+
+
+Job filters:
+~~~~~~~~~~~~
+
+You can filter jobs by their states which can be one of the following:
+    unbuilt, ready, paused, running, finished
+
+You can also apply a command to all jobs, typing "all" as job filter.
+
+Examples:
+    HeritrixRemote.jar localhost:8443 admin:admin status all
+    HeritrixRemote.jar localhost:8443 admin:admin build unbuilt
+    HeritrixRemote.jar localhost:8443 admin:admin unpause paused
+
+Commands:
+~~~~~~~~~
+
+status
+
+    Prints out status information of the given job/jobs. Status information
+    includes job state (unbuilt, ready, paused, running, finished) and the start
+    date of the crawl.
+
+    Examples:
+
+    HeritrixRemote.jar localhost:8443 admin:admin status http://www.site.com/
+    HeritrixRemote.jar localhost:8443 admin:admin status all
+
+
+create URL1[,URL2,URL3,...] [use CXML-NAME]
+
+    Creates a job with the specified seed URLs. You can pass more than one URL
+    separated by commas. Job identifier will be the first one. The name of the
+    job directory will be generated from this by replacing non-alphanumeric
+    character sequences with '-'.
+
+    If you have an own crawler-beans.cxml template which only need the seed URLs
+    to be inserted, you can pass it to HeritrixRemote using the "use" argument
+    as shown above. HeritrixRemote will insert the seed URLs, then pushes the
+    file to Heritrix.
+
+// TODO oo
+
+// build, launch, pause, unpause, teardown
+// store:needs localhost Heritrix
+// nem kell túlkomplikálni, calls the Heritrix command
