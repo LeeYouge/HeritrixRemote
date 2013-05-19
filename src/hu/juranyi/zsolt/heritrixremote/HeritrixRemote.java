@@ -1,11 +1,17 @@
 package hu.juranyi.zsolt.heritrixremote;
 
 import hu.juranyi.zsolt.heritrixremote.model.Heritrix;
+import hu.juranyi.zsolt.heritrixremote.model.HeritrixCall;
+import hu.juranyi.zsolt.heritrixremote.model.Job;
+import hu.juranyi.zsolt.heritrixremote.model.JobState;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * With HeritrixRemote you can easily control your running Heritrix especially
@@ -14,13 +20,10 @@ import java.lang.reflect.Method;
  * @author Zsolt Jurányi
  */
 public class HeritrixRemote {
-    // TODO Usage.txt
     // TODO tudni kéne detektálni ha nincs CURL telepítve
-    // TODO a *Command() metódusokban csekkolni a jobState-et, hogy végrehajtható-e a parancs
-    // TODO a create-ban rescan-t is kell hívni!
-    // TODO illetve exit code-okkal kéne kilépni ha hiba van!
-    // TODO esetleg a statusnál is lehetne valami exit code, pl. 100=UNBUILT, 101=PAUSED, ...
-    // TODO XML put-nál üres body jön ha sikeres volt
+    // TODO exit code-okkal kéne kilépni ha hiba van!
+    // TODO esetleg a statusnál is lehetne valami exit code, pl. 100=UNBUILT, 101=PAUSED, ... de ez persze csak 1 job-nál értelmes
+    // TODO store - ehhez localhost kell, dátumozott mappába másolja, csak ha FINISHED
 
     public static final String VERSION = "1.0b";
     public static Heritrix heritrix;
@@ -64,27 +67,92 @@ public class HeritrixRemote {
         }
     }
 
-    private static void statusCommand() {
+    private static List<Job> fetchNeededJobs() {
+        if (arguments[3].equalsIgnoreCase("all")) {
+            // need all jobs
+            return heritrix.getJobs();
+        } else {
+            // need jobs by state or id
+            ArrayList<Job> neededJobs = new ArrayList<Job>();
+            try {
+                JobState neededState = JobState.valueOf(arguments[3]); // throws exception on invalid enum value
+
+                // valid job state -> job filter
+                for (Job job : heritrix.getJobs()) {
+                    if (job.getState().equals(neededState)) {
+                        neededJobs.add(job);
+                    }
+                }
+            } catch (IllegalArgumentException ex) {
+                // invalid job state -> job id
+                Job job = new Job(heritrix, Arrays.asList(new String[]{arguments[3]}));
+                // TODO ide lehetne valami csekkolást, hogy létezik-e ilyen job
+                neededJobs.add(job);
+            }
+            return neededJobs;
+        }
     }
 
-    private static void createCommand() {
+    private static void basicAction(String action, JobState[] allowedJobStates) {
+        List<JobState> allowed = Arrays.asList(allowedJobStates);
+        for (Job job : fetchNeededJobs()) {
+            if (allowed.contains(job.getState())) {
+                System.out.print("Action: " + action + " on job: " + job.getDir() + " ... ");
+                try {
+                    new HeritrixCall(heritrix).path("jobs/" + job.getDir()).data("action=" + action).getResponse();
+                    // TODO kell itt valamit csekkolni? :-)
+                } catch (Exception ex) {
+                    System.out.println("FAILED");
+                }
+            } else {
+                System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());
+            }
+        }
+    }
+
+    /*
+     * xxxCommand() methods: they will be called from main() where xxx is arg[2]
+     * -------------------------------------------------------------------------
+     */
+    private static void statusCommand() {
+        for (Job job : fetchNeededJobs()) {
+            System.out.println(job.getState().toString() + "\t" + job.getStartDate().toString() + "\t" + job.getDir());
+            // TODO simple date format
+        }
+    }
+
+    private static void createCommand() { // TODO createCommand()
+        // will not use fetchNeededJobs nor basicAction
+        // receives:
+        // arg[3] = URL1[,URL2,...]
+        // and optionally arg[4] = "use" and arg[5] = CXML_NAME
+        // XML put-nál üres body jön ha sikeres volt
+        // call rescan!
     }
 
     private static void buildCommand() {
+        basicAction("build", new JobState[]{JobState.UNBUILT});
     }
 
     private static void launchCommand() {
+        basicAction("launch", new JobState[]{JobState.READY});
+        // TODO wait (?)
     }
 
     private static void unpauseCommand() {
+        basicAction("unpause", new JobState[]{JobState.PAUSED});
     }
 
     private static void pauseCommand() {
+        basicAction("pause", new JobState[]{JobState.RUNNING});
     }
 
     private static void teardownCommand() {
+        basicAction("teardown", new JobState[]{JobState.PAUSED, JobState.FINISHED});
     }
 
     private static void terminateCommand() {
+        basicAction("teardown", new JobState[]{JobState.PAUSED, JobState.RUNNING, JobState.FINISHED});
+        // TODO wait (?)        
     }
 }

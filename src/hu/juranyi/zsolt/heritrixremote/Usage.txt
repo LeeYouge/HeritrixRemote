@@ -37,9 +37,9 @@ Commands:
 
 status
 
-    Prints out status information of the given job/jobs. Status information
-    includes job state (unbuilt, ready, paused, running, finished) and the start
-    date of the crawl.
+    Prints out status information of the job/jobs. Status information includes
+    job state (unbuilt, ready, paused, running, finished) and the start date of
+    the crawl.
 
     Examples:
 
@@ -59,8 +59,34 @@ create URL1[,URL2,URL3,...] [use CXML-NAME]
     as shown above. HeritrixRemote will insert the seed URLs, then pushes the
     file to Heritrix.
 
-// TODO oo
+build
 
-// build, launch, pause, unpause, teardown
-// store:needs localhost Heritrix
-// nem kell túlkomplikálni, calls the Heritrix command
+    Builds an unbuilt job. Building process means that Heritrix creates the Java
+    objects the CXML file, they are needed to run the crawl.
+
+launch
+
+    Launches a ready (built) job. Heritrix will pause the crawl after preparing
+    the job for launch. You should wait a few seconds before calling Heritrix on
+    the same job again.
+
+pause
+
+    Pauses a running job.
+
+unpause
+
+    Unpauses a paused job.
+
+teardown
+
+    Tears down a paused or finished job. It means that Heritrix will discard the
+    Java objects created at build, so the job will remain unbuilt after this
+    call.
+
+terminate
+
+    Terminates a paused, running or finished job. Heritrix will do some further
+    operations after this call, so you should wait a few seconds before calling
+    Heritrix on the same job again. The job will remain finished after this
+    call.

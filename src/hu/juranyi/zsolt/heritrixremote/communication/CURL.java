@@ -2,6 +2,7 @@ package hu.juranyi.zsolt.heritrixremote.communication;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Map;
 
@@ -52,16 +53,9 @@ public class CURL implements IRESTClient {
             curl = curl.replace("DATA", "-T " + file.getAbsolutePath());
         }
 
-        Runtime rt = Runtime.getRuntime();
-        Process proc = Runtime.getRuntime().exec(curl);
-        BufferedReader stdInput = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        StringBuilder sb = new StringBuilder();
-        String s;
-        while ((s = stdInput.readLine()) != null) {
-            sb.append(s);
-            sb.append("\n");
-        }
-        response = sb.toString();
+        ShellExec shellExec = new ShellExec(curl);
+        shellExec.exec();
+        response = shellExec.getStdout();
     }
 
     @Override
