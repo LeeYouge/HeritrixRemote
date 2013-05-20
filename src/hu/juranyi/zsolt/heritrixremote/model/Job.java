@@ -1,5 +1,6 @@
 package hu.juranyi.zsolt.heritrixremote.model;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import org.jsoup.Jsoup;
@@ -57,33 +58,40 @@ public class Job {
     }
 
     private List<String> fetchSeedURLs() {
+        ArrayList<String> seedURLs = new ArrayList<String>();
         try {
             String response = new HeritrixCall(heritrix).path("jobs/" + dir + "/crawler-beans.cxml").getResponse();
             // TODO parse seedURLs
         } catch (Exception ex) {
+            System.out.println("ERROR: Failed to fetch crawler-beans.cxml.");
+            System.exit(1); // TODO EXIT WITH ERROR CODE
         }
-
-        return null;
+        return seedURLs;
     }
 
     private JobState fetchState() { // TODO TEST fetchState()
         try {
             String response = new HeritrixCall(heritrix).path("jobs/" + dir).getResponse();
-            Document doc = Jsoup.parse(response);
-            Elements elements = doc.select("h2");
-            for(Element e : elements) {
-               if (e.hasText() && e.text().startsWith("Job is ")) {
-                   state = JobState.parseFromStatusString(e.text().trim());
-               }
+            Elements elements = Jsoup.parse(response).select("h2");
+            for (Element e : elements) {
+                if (e.hasText() && e.text().startsWith("Job is ")) {
+                    return JobState.parseFromStatusString(e.text().trim());
+                }
             }
+            System.out.println("ERROR: Failed to parse job state.");
+            System.exit(1); // TODO EXIT WITH ERROR CODE
+            return null;
         } catch (Exception ex) {
+            System.out.println("ERROR: Failed to fetch job page.");
+            System.exit(1); // TODO EXIT WITH ERROR CODE
+            return null;
         }
-        return null;
     }
 
     private Date fetchStartDate() {
         // TODO fetchStartDate()
-        // lekéri a job megfelelő logfájlját, kiparszolja a legutóbbi RUNNING előtti dátumot
+        // file: jobs/jobdir/job.log
+        // needed data: last line matching ".* INFO [^ ]+ \d{14}$", we need the first 8 digits of that sequence
         return null;
     }
 }

@@ -20,6 +20,9 @@ import java.util.List;
  * @author Zsolt Jurányi
  */
 public class HeritrixRemote {
+    // TODO javadoc, make all private -> protected
+    // TODO hiba esetén kilépés - 1. megoldás: az adott helyen System.exit(#), enum+own int-ből vagy static final int-ből
+    // TODO hiba esetén kilépés - 1. megoldás: a getter-ek/fetch-erek exception-t dobnak, és itt a main class lép ki; az exception-ök tartalmazzák az exit code-ot (static final int)
     // TODO tudni kéne detektálni ha nincs CURL telepítve
     // TODO exit code-okkal kéne kilépni ha hiba van!
     // TODO esetleg a statusnál is lehetne valami exit code, pl. 100=UNBUILT, 101=PAUSED, ... de ez persze csak 1 job-nál értelmes
@@ -40,8 +43,8 @@ public class HeritrixRemote {
             arguments = args;
             heritrix = new Heritrix(args[0], args[1]);
             try {
-                Method commandMethod = HeritrixRemote.class.getDeclaredMethod(args[2] + "Command", null);
-                commandMethod.invoke(new HeritrixRemote(), null);
+                Method commandMethod = HeritrixRemote.class.getDeclaredMethod(args[2] + "Command", (Class<?>[]) null);
+                commandMethod.invoke(null, (Object[]) null);
             } catch (NoSuchMethodException ex) {
                 printUsage();
             } catch (Exception ex) {
@@ -115,6 +118,7 @@ public class HeritrixRemote {
      * -------------------------------------------------------------------------
      */
     private static void statusCommand() {
+        System.out.println("STATE\tSTART DATE\tJOB DIRECTORY");
         for (Job job : fetchNeededJobs()) {
             System.out.println(job.getState().toString() + "\t" + job.getStartDate().toString() + "\t" + job.getDir());
             // TODO simple date format

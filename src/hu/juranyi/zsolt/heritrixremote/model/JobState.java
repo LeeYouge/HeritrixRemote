@@ -18,7 +18,7 @@ public enum JobState {
             return PAUSED;
         } else if (s.equals("Job is Active: RUNNING")) {
             return RUNNING;
-        } else if (s.matches("Job is Finished: [A-Z]+")) {
+        } else if (s.matches("Job is Finished: [A-Z]+")) { // FINISHED or ABORTED, not sure that's all
             return FINISHED;
         } else {
             return null; // on parse error
