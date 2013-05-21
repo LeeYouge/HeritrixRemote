@@ -59,7 +59,7 @@ public class Heritrix {
 
     private List<Job> fetchJobs() {
         ArrayList<Job> jobs = new ArrayList<Job>();
-        Elements jobLinks = Jsoup.parse(getIndexPage()).select("li span.job a");
+        Elements jobLinks = Jsoup.parse(getIndexPage()).select("a[href~=job/]");
         if (jobLinks.isEmpty()) {
             System.out.println("ERROR: Failed to parse or there aren't any crawling jobs.");
             System.exit(1); // TODO EXIT WITH ERROR CODE

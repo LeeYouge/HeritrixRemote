@@ -71,7 +71,7 @@ public class Job {
 
     private JobState fetchState() { // TODO TEST fetchState()
         try {
-            String response = new HeritrixCall(heritrix).path("jobs/" + dir).getResponse();
+            String response = new HeritrixCall(heritrix).path("job/" + dir).getResponse();
             Elements elements = Jsoup.parse(response).select("h2");
             for (Element e : elements) {
                 if (e.hasText() && e.text().startsWith("Job is ")) {
@@ -92,6 +92,6 @@ public class Job {
         // TODO fetchStartDate()
         // file: jobs/jobdir/job.log
         // needed data: last line matching ".* INFO [^ ]+ \d{14}$", we need the first 8 digits of that sequence
-        return null;
+        return new Date();
     }
 }

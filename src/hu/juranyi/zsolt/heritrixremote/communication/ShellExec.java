@@ -42,7 +42,7 @@ public class ShellExec {
             builder.append(line);
             builder.append("\n");
         }
-        stdout = builder.toString();
+        stderr = builder.toString();
 
         exitCode = proc.exitValue();
     }
