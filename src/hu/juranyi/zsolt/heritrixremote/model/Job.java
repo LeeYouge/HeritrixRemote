@@ -1,10 +1,10 @@
 package hu.juranyi.zsolt.heritrixremote.model;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -60,7 +60,7 @@ public class Job {
     private List<String> fetchSeedURLs() {
         ArrayList<String> seedURLs = new ArrayList<String>();
         try {
-            String response = new HeritrixCall(heritrix).path("jobs/" + dir + "/crawler-beans.cxml").getResponse();
+            String response = new HeritrixCall(heritrix).path("jobs/" + getDir() + "/crawler-beans.cxml").getResponse();
             // TODO parse seedURLs
         } catch (Exception ex) {
             System.out.println("ERROR: Failed to fetch crawler-beans.cxml.");
@@ -71,7 +71,7 @@ public class Job {
 
     private JobState fetchState() { // TODO TEST fetchState()
         try {
-            String response = new HeritrixCall(heritrix).path("job/" + dir).getResponse();
+            String response = new HeritrixCall(heritrix).path("job/" + getDir()).getResponse();
             Elements elements = Jsoup.parse(response).select("h2");
             for (Element e : elements) {
                 if (e.hasText() && e.text().startsWith("Job is ")) {
@@ -89,9 +89,22 @@ public class Job {
     }
 
     private Date fetchStartDate() {
-        // TODO fetchStartDate()
-        // file: jobs/jobdir/job.log
-        // needed data: last line matching ".* INFO [^ ]+ \d{14}$", we need the first 8 digits of that sequence
-        return new Date();
+        try {
+            String response = new HeritrixCall(heritrix).path("jobsdir/" + getDir() + "/job.log").getResponse();
+            String date = null;
+            for (String line : response.split("\n")) {
+                if (line.matches(".* INFO [^ ]+ \\d{14}$")) {
+                    date = line.replaceAll(".* INFO [^ ]+ ", "");
+                }
+            }
+            if (null != date) {
+                return new SimpleDateFormat("yyyyMMddHHmmss").parse(date);
+            }
+        } catch (Exception ex) {
+            System.out.println("ERROR: Failed to parse job start date.");
+            System.exit(1); // TODO EXIT WITH ERROR CODE
+            return null;
+        }
+        return null;
     }
 }

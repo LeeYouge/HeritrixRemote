@@ -9,8 +9,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -100,12 +102,13 @@ public class HeritrixRemote {
         List<JobState> allowed = Arrays.asList(allowedJobStates);
         for (Job job : fetchNeededJobs()) {
             if (allowed.contains(job.getState())) {
-                System.out.print("Action: " + action + " on job: " + job.getDir() + " ... ");
+                System.out.print("Action '" + action + "' on job '" + job.getDir() + "' ... ");
                 try {
-                    new HeritrixCall(heritrix).path("jobs/" + job.getDir()).data("action=" + action).getResponse();
+                    new HeritrixCall(heritrix).path("job/" + job.getDir()).data("action=" + action).getResponse();
                     // TODO kell itt valamit csekkolni? :-)
                 } catch (Exception ex) {
-                    System.out.println("FAILED");
+                    System.out.println("ERROR: Failed to execute command '" + action + "' on job '" + job.getDir() + "'.");
+                    System.exit(1); // TODO EXIT WITH ERROR CODE
                 }
             } else {
                 System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());
@@ -118,10 +121,20 @@ public class HeritrixRemote {
      * -------------------------------------------------------------------------
      */
     private static void statusCommand() {
-        System.out.println("STATE\tSTART DATE\tJOB DIRECTORY");
+        String lineFormat = "%-8s | %-15s | %s\n";
+        
+        // table header
+        System.out.printf(lineFormat, "STATE", "START TIME", "JOB DIRECTORY");
+        for (int i = 0; i < 78; i++) {
+            System.out.print(((9 == i || 27 == i) ? "+" : "-"));
+        }
+        System.out.println();
+        
+        // table rows
         for (Job job : fetchNeededJobs()) {
-            System.out.println(job.getState().toString() + "\t" + job.getStartDate().toString() + "\t" + job.getDir());
-            // TODO simple date format
+            Date startDate = job.getStartDate();
+            String startDateStr = (null == startDate) ? "N/A" : new SimpleDateFormat("yyyyMMdd HHmmss").format(startDate);
+            System.out.printf(lineFormat, job.getState().toString(), startDateStr, job.getDir());
         }
     }
 
@@ -132,6 +145,7 @@ public class HeritrixRemote {
         // and optionally arg[4] = "use" and arg[5] = CXML_NAME
         // XML put-nál üres body jön ha sikeres volt
         // call rescan!
+        // hibaüzi, ha már van ilyen job!!!
     }
 
     private static void buildCommand() {
