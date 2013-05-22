@@ -12,11 +12,11 @@ Usage:
 Job identifier:
 ~~~~~~~~~~~~~~~
 
-To identify a job, specify its first seed URL.
+To identify a job, specify its first seed URL or the job directory name.
 
 Examples:
     HeritrixRemote.jar localhost:8443 admin:admin status http://www.site.com/
-    HeritrixRemote.jar localhost:8443 admin:admin pause http://www.site.com/
+    HeritrixRemote.jar localhost:8443 admin:admin pause http-www-site-com
 
 
 Job filters:

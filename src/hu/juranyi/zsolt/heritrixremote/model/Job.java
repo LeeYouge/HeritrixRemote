@@ -29,7 +29,7 @@ public class Job {
     public Job(Heritrix heritrix, List<String> seedURLs) {
         this.heritrix = heritrix;
         this.seedURLs = seedURLs;
-        dir = seedURLs.get(0).toLowerCase().replaceAll("[^a-z]+", "-");
+        dir = seedURLs.get(0).toLowerCase().replaceAll("[^a-z]+", "-").replaceAll("-$", "");
     }
 
     public String getDir() {
@@ -69,7 +69,7 @@ public class Job {
         return seedURLs;
     }
 
-    private JobState fetchState() { // TODO TEST fetchState()
+    private JobState fetchState() {
         try {
             String response = new HeritrixCall(heritrix).path("job/" + getDir()).getResponse();
             Elements elements = Jsoup.parse(response).select("h2");

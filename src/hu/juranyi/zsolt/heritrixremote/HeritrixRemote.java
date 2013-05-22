@@ -122,14 +122,14 @@ public class HeritrixRemote {
      */
     private static void statusCommand() {
         String lineFormat = "%-8s | %-15s | %s\n";
-        
+
         // table header
         System.out.printf(lineFormat, "STATE", "START TIME", "JOB DIRECTORY");
         for (int i = 0; i < 78; i++) {
             System.out.print(((9 == i || 27 == i) ? "+" : "-"));
         }
         System.out.println();
-        
+
         // table rows
         for (Job job : fetchNeededJobs()) {
             Date startDate = job.getStartDate();
@@ -166,11 +166,11 @@ public class HeritrixRemote {
     }
 
     private static void teardownCommand() {
-        basicAction("teardown", new JobState[]{JobState.PAUSED, JobState.FINISHED});
+        basicAction("teardown", new JobState[]{JobState.READY, JobState.PAUSED, JobState.FINISHED});
     }
 
     private static void terminateCommand() {
-        basicAction("teardown", new JobState[]{JobState.PAUSED, JobState.RUNNING, JobState.FINISHED});
+        basicAction("terminate", new JobState[]{JobState.PAUSED, JobState.RUNNING});
         // TODO wait (?)        
     }
 }
