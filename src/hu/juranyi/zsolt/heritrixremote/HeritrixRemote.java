@@ -4,6 +4,7 @@ import hu.juranyi.zsolt.heritrixremote.model.Heritrix;
 import hu.juranyi.zsolt.heritrixremote.model.HeritrixCall;
 import hu.juranyi.zsolt.heritrixremote.model.Job;
 import hu.juranyi.zsolt.heritrixremote.model.JobState;
+import hu.juranyi.zsolt.heritrixremote.model.ObjectCounter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -90,8 +91,11 @@ public class HeritrixRemote {
                 }
             } catch (IllegalArgumentException ex) {
                 // invalid job state -> job id
+                // job id can be URL: (https?|ftp)://.+\..+ -> 
+                //            or dir
+                // TODO ez alapján ki kéne keresni a heritrix.getJobs()-ból
+                // így kiderül, hogy létezik-e a job
                 Job job = new Job(heritrix, Arrays.asList(new String[]{arguments[3]}));
-                // TODO ide lehetne valami csekkolást, hogy létezik-e ilyen job
                 neededJobs.add(job);
             }
             return neededJobs;
@@ -100,7 +104,12 @@ public class HeritrixRemote {
 
     private static void basicAction(String action, JobState[] allowedJobStates) {
         List<JobState> allowed = Arrays.asList(allowedJobStates);
-        for (Job job : fetchNeededJobs()) {
+        List<Job> neededJobs = fetchNeededJobs();
+        if (neededJobs.isEmpty()) {
+            System.out.println("No jobs match the given id or filter.");
+            System.exit(1); // TODO EXIT WITH ERROR CODE
+        }
+        for (Job job : neededJobs) {
             if (allowed.contains(job.getState())) {
                 System.out.print("Action '" + action + "' on job '" + job.getDir() + "' ... ");
                 try {
@@ -131,10 +140,23 @@ public class HeritrixRemote {
         System.out.println();
 
         // table rows
+        ObjectCounter<JobState> counter = new ObjectCounter<JobState>();
         for (Job job : fetchNeededJobs()) {
             Date startDate = job.getStartDate();
+            JobState state = job.getState();
+            counter.add(state);
             String startDateStr = (null == startDate) ? "N/A" : new SimpleDateFormat("yyyyMMdd HHmmss").format(startDate);
-            System.out.printf(lineFormat, job.getState().toString(), startDateStr, job.getDir());
+            System.out.printf(lineFormat, state.toString(), startDateStr, job.getDir());
+        }
+
+        // table footer
+        // TODO test
+        String sumFormat = "%6d %s\n";
+        System.out.printf(sumFormat, heritrix.getJobs().size(), "TOTAL JOBS");
+        for (JobState state : JobState.values()) {
+            if (counter.getMap().keySet().contains(state)) {
+                System.out.printf(sumFormat, counter.get(state), state.toString());
+            }
         }
     }
 
@@ -146,6 +168,8 @@ public class HeritrixRemote {
         // XML put-nál üres body jön ha sikeres volt
         // call rescan!
         // hibaüzi, ha már van ilyen job!!!
+        // hibaüzi, ha filter nevet ad meg!
+        // hibaüzi, ha nem szabványos URL: (https?|ftp)://.+\..+
     }
 
     private static void buildCommand() {
@@ -172,5 +196,11 @@ public class HeritrixRemote {
     private static void terminateCommand() {
         basicAction("terminate", new JobState[]{JobState.PAUSED, JobState.RUNNING});
         // TODO wait (?)        
+    }
+
+    private static void storeCommand() { // TODO storeCommand()
+        // args: store jobfilter/id archive-directory
+        // az archive directory-ban létrehoz egy dátum mappát startDate alapján
+        // oda áthelyezi (system command-dal?) a jobdir/mirror mappa tartalmát
     }
 }
