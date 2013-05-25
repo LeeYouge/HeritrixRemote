@@ -23,13 +23,13 @@ import java.util.List;
  * @author Zsolt Jurányi
  */
 public class HeritrixRemote {
+    // TODO detect if cURL installed (?) - if !heritrix.getIndexPage().isEmpty() ??
+    // TODO error codes - implementation A - enum ErrorType with int member, call: System.exit(ErrorType.getErrorCode(ErrorType.ERROR_TYPE));
+    // TODO error codes - implementation B - methods in other classes throw exceptions, exceptions hold error code (static final int member), main method calls System.exit(#);
+    // TODO error codes - implementation C - Error(ErrorType et) { sout et.getMessage(); system.exit(et.getExitCode())}
+    // - where ErrorType is enum, and has exitCode and message members
+    // - this seems to be my favourite implementation :-)
     // TODO javadoc, make all private -> protected
-    // TODO hiba esetén kilépés - 1. megoldás: az adott helyen System.exit(#), enum+own int-ből vagy static final int-ből
-    // TODO hiba esetén kilépés - 1. megoldás: a getter-ek/fetch-erek exception-t dobnak, és itt a main class lép ki; az exception-ök tartalmazzák az exit code-ot (static final int)
-    // TODO tudni kéne detektálni ha nincs CURL telepítve
-    // TODO exit code-okkal kéne kilépni ha hiba van!
-    // TODO esetleg a statusnál is lehetne valami exit code, pl. 100=UNBUILT, 101=PAUSED, ... de ez persze csak 1 job-nál értelmes
-    // TODO store - ehhez localhost kell, dátumozott mappába másolja, csak ha FINISHED
 
     public static final String VERSION = "1.0b";
     public static Heritrix heritrix;
@@ -46,11 +46,12 @@ public class HeritrixRemote {
             arguments = args;
             heritrix = new Heritrix(args[0], args[1]);
             try {
+                // calling xxxCommand() - it should exit when an error occurs!
                 Method commandMethod = HeritrixRemote.class.getDeclaredMethod(args[2] + "Command", (Class<?>[]) null);
                 commandMethod.invoke(null, (Object[]) null);
             } catch (NoSuchMethodException ex) {
                 printUsage();
-            } catch (Exception ex) {
+            } catch (Exception ex) { // some bug crawls back up to here somehow
                 ex.printStackTrace();
             }
         }
@@ -76,7 +77,7 @@ public class HeritrixRemote {
     private static List<Job> fetchNeededJobs() {
         if (arguments[3].equalsIgnoreCase("all")) {
             // need all jobs
-            return heritrix.getJobs();
+            return heritrix.getJobs(); // itt will handle if empty
         } else {
             // need jobs by state or id
             ArrayList<Job> neededJobs = new ArrayList<Job>();
@@ -91,12 +92,21 @@ public class HeritrixRemote {
                 }
             } catch (IllegalArgumentException ex) {
                 // invalid job state -> job id
-                // job id can be URL: (https?|ftp)://.+\..+ -> 
-                //            or dir
-                // TODO ez alapján ki kéne keresni a heritrix.getJobs()-ból
-                // így kiderül, hogy létezik-e a job
-                Job job = new Job(heritrix, Arrays.asList(new String[]{arguments[3]}));
-                neededJobs.add(job);
+                String jobdir = arguments[3]; // id is the directory name
+                if (jobdir.matches("(https?|ftp)://.+\\..+")) { // id is the first seed URL
+                    jobdir = Job.URLtoDirectoryName(jobdir);
+                }
+                for (Job job : heritrix.getJobs()) {
+                    if (job.getDir().equals(jobdir)) {
+                        neededJobs.add(job);
+                        break;
+                    }
+                }
+            }
+
+            if (neededJobs.isEmpty()) { // we can't do much with no jobs
+                System.out.println("No jobs match the given id or filter.");
+                System.exit(1); // TODO EXIT WITH ERROR CODE
             }
             return neededJobs;
         }
@@ -104,22 +114,17 @@ public class HeritrixRemote {
 
     private static void basicAction(String action, JobState[] allowedJobStates) {
         List<JobState> allowed = Arrays.asList(allowedJobStates);
-        List<Job> neededJobs = fetchNeededJobs();
-        if (neededJobs.isEmpty()) {
-            System.out.println("No jobs match the given id or filter.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
-        }
-        for (Job job : neededJobs) {
-            if (allowed.contains(job.getState())) {
+        for (Job job : fetchNeededJobs()) {
+            if (allowed.contains(job.getState())) { // job has appropriate state to perform action
                 System.out.print("Action '" + action + "' on job '" + job.getDir() + "' ... ");
                 try {
                     new HeritrixCall(heritrix).path("job/" + job.getDir()).data("action=" + action).getResponse();
-                    // TODO kell itt valamit csekkolni? :-)
+                    // TODO should I check something here?
                 } catch (Exception ex) {
                     System.out.println("ERROR: Failed to execute command '" + action + "' on job '" + job.getDir() + "'.");
                     System.exit(1); // TODO EXIT WITH ERROR CODE
                 }
-            } else {
+            } else { // job has inappropriate state
                 System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());
             }
         }
@@ -150,7 +155,7 @@ public class HeritrixRemote {
         }
 
         // table footer
-        // TODO test
+        // TODO test stats summary
         String sumFormat = "%6d %s\n";
         System.out.printf(sumFormat, heritrix.getJobs().size(), "TOTAL JOBS");
         for (JobState state : JobState.values()) {
@@ -165,11 +170,18 @@ public class HeritrixRemote {
         // receives:
         // arg[3] = URL1[,URL2,...]
         // and optionally arg[4] = "use" and arg[5] = CXML_NAME
+        // hibaüzi, ha nem szabványos URL: (https?|ftp)://.+\..+        
+        // hibaüzi, ha már van ilyen job
+        // call create
+        // if no "use" parameter
+        // - cxml = get new job's cxml
+        // else
+        // - cxml = load user specified cxml
+        // URL-ekben cserélni "&" -> "&amp;"
+        // insert seed urls
+        // put cxml
         // XML put-nál üres body jön ha sikeres volt
         // call rescan!
-        // hibaüzi, ha már van ilyen job!!!
-        // hibaüzi, ha filter nevet ad meg!
-        // hibaüzi, ha nem szabványos URL: (https?|ftp)://.+\..+
     }
 
     private static void buildCommand() {
@@ -200,6 +212,9 @@ public class HeritrixRemote {
 
     private static void storeCommand() { // TODO storeCommand()
         // args: store jobfilter/id archive-directory
+        // check-olni létrezik-e az archive directory, ha nem -> hiba
+        // check-olni, elérem-e a jobs directory-t, ha nem -> hiba
+        // job state must be finished
         // az archive directory-ban létrehoz egy dátum mappát startDate alapján
         // oda áthelyezi (system command-dal?) a jobdir/mirror mappa tartalmát
     }

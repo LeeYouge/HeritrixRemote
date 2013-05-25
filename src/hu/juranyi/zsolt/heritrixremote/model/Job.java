@@ -17,6 +17,7 @@ public class Job {
 
     private final Heritrix heritrix;
     private final String dir;
+    private String CXML;
     private List<String> seedURLs;
     private JobState state;
     private Date startDate;
@@ -29,14 +30,29 @@ public class Job {
     public Job(Heritrix heritrix, List<String> seedURLs) {
         this.heritrix = heritrix;
         this.seedURLs = seedURLs;
-        dir = seedURLs.get(0).toLowerCase().replaceAll("[^a-z]+", "-").replaceAll("-$", "");
+        dir = URLtoDirectoryName(seedURLs.get(0));
+    }
+
+    public static String URLtoDirectoryName(String URL) {
+        return URL.toLowerCase().replaceAll("[^a-z]+", "-").replaceAll("-$", "");
+    }
+
+    public Heritrix getHeritrix() {
+        return heritrix;
     }
 
     public String getDir() {
         return dir;
     }
 
-    public List<String> getSeedURLs() {
+    public String getCXML() {
+        if (null == CXML) {
+            CXML = fetchCXML();
+        }
+        return CXML;
+    }
+
+    public List<String> getSeedURLs() { // TODO do we need this? :D
         if (null == seedURLs) {
             seedURLs = fetchSeedURLs();
         }
@@ -57,14 +73,30 @@ public class Job {
         return startDate;
     }
 
-    private List<String> fetchSeedURLs() {
-        ArrayList<String> seedURLs = new ArrayList<String>();
+    private String fetchCXML() {
         try {
-            String response = new HeritrixCall(heritrix).path("jobs/" + getDir() + "/crawler-beans.cxml").getResponse();
-            // TODO parse seedURLs
+            return new HeritrixCall(heritrix).path("jobs/" + getDir() + "/crawler-beans.cxml").getResponse();
         } catch (Exception ex) {
             System.out.println("ERROR: Failed to fetch crawler-beans.cxml.");
             System.exit(1); // TODO EXIT WITH ERROR CODE
+            return null;
+        }
+    }
+
+    private List<String> fetchSeedURLs() { // TODO test fetch seed urls
+        ArrayList<String> seedURLs = new ArrayList<String>();
+        Elements props = Jsoup.parse(getCXML()).select("prop[key=seeds.textSource.value]");
+        if (props.isEmpty()) {
+            System.out.println("ERROR: Appropriate XML tag not found for seed URLs, crawler-beans.cxml may be corrupted.");
+            System.exit(1); // TODO EXIT WITH ERROR CODE
+        } else {
+            String seedURLsStr = props.first().text();
+            for (String seedURL : seedURLsStr.split("\n")) {
+                seedURL = seedURL.trim();
+                if (!seedURL.startsWith("#")) {
+                    seedURLs.add(seedURL);
+                }
+            }
         }
         return seedURLs;
     }
@@ -88,7 +120,7 @@ public class Job {
         }
     }
 
-    private Date fetchStartDate() {
+    private Date fetchStartDate() { // TODO test start date with jobs configured with MirrorWriter !!!
         try {
             String response = new HeritrixCall(heritrix).path("jobsdir/" + getDir() + "/job.log").getResponse();
             String date = null;
