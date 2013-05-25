@@ -1,5 +1,7 @@
 package hu.juranyi.zsolt.heritrixremote;
 
+import hu.juranyi.zsolt.heritrixremote.model.ErrorHandler;
+import hu.juranyi.zsolt.heritrixremote.model.ErrorType;
 import hu.juranyi.zsolt.heritrixremote.model.Heritrix;
 import hu.juranyi.zsolt.heritrixremote.model.HeritrixCall;
 import hu.juranyi.zsolt.heritrixremote.model.Job;
@@ -23,13 +25,8 @@ import java.util.List;
  * @author Zsolt Jurányi
  */
 public class HeritrixRemote {
-    // TODO detect if cURL installed (?) - if !heritrix.getIndexPage().isEmpty() ??
-    // TODO error codes - implementation A - enum ErrorType with int member, call: System.exit(ErrorType.getErrorCode(ErrorType.ERROR_TYPE));
-    // TODO error codes - implementation B - methods in other classes throw exceptions, exceptions hold error code (static final int member), main method calls System.exit(#);
-    // TODO error codes - implementation C - Error(ErrorType et) { sout et.getMessage(); system.exit(et.getExitCode())}
-    // - where ErrorType is enum, and has exitCode and message members
-    // - this seems to be my favourite implementation :-)
     // TODO javadoc, make all private -> protected
+    // TODO error handling - wouldn't it be prettier using HRException(ErrorType) instead of ErrorHandler? and exceptions crawl back to main where they be handled?
 
     public static final String VERSION = "1.0b";
     public static Heritrix heritrix;
@@ -52,7 +49,7 @@ public class HeritrixRemote {
             } catch (NoSuchMethodException ex) {
                 printUsage();
             } catch (Exception ex) { // some bug crawls back up to here somehow
-                ex.printStackTrace();
+                new ErrorHandler(ErrorType.UNKNOWN_BUG, ex);
             }
         }
     }
@@ -71,6 +68,7 @@ public class HeritrixRemote {
                 System.out.println(r.readLine());
             }
         } catch (IOException ex) {
+            new ErrorHandler(ErrorType.FAILED_TO_LOAD_RESOURCE, ex);
         }
     }
 
@@ -105,8 +103,7 @@ public class HeritrixRemote {
             }
 
             if (neededJobs.isEmpty()) { // we can't do much with no jobs
-                System.out.println("No jobs match the given id or filter.");
-                System.exit(1); // TODO EXIT WITH ERROR CODE
+                new ErrorHandler(ErrorType.NO_MATCHING_JOBS);
             }
             return neededJobs;
         }
@@ -121,8 +118,7 @@ public class HeritrixRemote {
                     new HeritrixCall(heritrix).path("job/" + job.getDir()).data("action=" + action).getResponse();
                     // TODO should I check something here?
                 } catch (Exception ex) {
-                    System.out.println("ERROR: Failed to execute command '" + action + "' on job '" + job.getDir() + "'.");
-                    System.exit(1); // TODO EXIT WITH ERROR CODE
+                    new ErrorHandler(ErrorType.FAILED_TO_PERFORM_JOB_ACTION);
                 }
             } else { // job has inappropriate state
                 System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());
@@ -165,7 +161,7 @@ public class HeritrixRemote {
         }
     }
 
-    private static void createCommand() { // TODO createCommand()
+    private static void createCommand() { // TODO IMPLEMENT createCommand()
         // will not use fetchNeededJobs nor basicAction
         // receives:
         // arg[3] = URL1[,URL2,...]
@@ -210,7 +206,7 @@ public class HeritrixRemote {
         // TODO wait (?)        
     }
 
-    private static void storeCommand() { // TODO storeCommand()
+    private static void storeCommand() { // TODO IMPLEMENT storeCommand()
         // args: store jobfilter/id archive-directory
         // check-olni létrezik-e az archive directory, ha nem -> hiba
         // check-olni, elérem-e a jobs directory-t, ha nem -> hiba

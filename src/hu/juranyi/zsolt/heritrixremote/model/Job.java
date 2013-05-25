@@ -52,7 +52,7 @@ public class Job {
         return CXML;
     }
 
-    public List<String> getSeedURLs() { // TODO do we need this? :D
+    public List<String> getSeedURLs() {
         if (null == seedURLs) {
             seedURLs = fetchSeedURLs();
         }
@@ -77,8 +77,7 @@ public class Job {
         try {
             return new HeritrixCall(heritrix).path("jobs/" + getDir() + "/crawler-beans.cxml").getResponse();
         } catch (Exception ex) {
-            System.out.println("ERROR: Failed to fetch crawler-beans.cxml.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_FETCH_CXML);
             return null;
         }
     }
@@ -87,8 +86,7 @@ public class Job {
         ArrayList<String> seedURLs = new ArrayList<String>();
         Elements props = Jsoup.parse(getCXML()).select("prop[key=seeds.textSource.value]");
         if (props.isEmpty()) {
-            System.out.println("ERROR: Appropriate XML tag not found for seed URLs, crawler-beans.cxml may be corrupted.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_PARSE_SEED_URLS);
         } else {
             String seedURLsStr = props.first().text();
             for (String seedURL : seedURLsStr.split("\n")) {
@@ -110,12 +108,10 @@ public class Job {
                     return JobState.parseFromStatusString(e.text().trim());
                 }
             }
-            System.out.println("ERROR: Failed to parse job state.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_PARSE_JOB_STATE);
             return null;
         } catch (Exception ex) {
-            System.out.println("ERROR: Failed to fetch job page.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_FETCH_JOB_PAGE);
             return null;
         }
     }
@@ -133,8 +129,7 @@ public class Job {
                 return new SimpleDateFormat("yyyyMMddHHmmss").parse(date);
             }
         } catch (Exception ex) {
-            System.out.println("ERROR: Failed to parse job start date.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_PARSE_JOB_START_DATE);
             return null;
         }
         return null;

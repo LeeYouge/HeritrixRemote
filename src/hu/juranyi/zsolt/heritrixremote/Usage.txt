@@ -14,7 +14,7 @@ Job identifier:
 
 To identify a job, specify its directory name or its first seed URL.
 The specified URL will be transformed to a directory name - see description of
-'create' command below for more information.
+"create" command below for more information.
 
 Examples:
     HeritrixRemote.jar localhost:8443 admin:admin status http://www.site.com/

@@ -51,8 +51,7 @@ public class Heritrix {
         try {
             return new HeritrixCall(this).getResponse();
         } catch (Exception ex) {
-            System.out.println("ERROR: Failed to fetch Heritrix index page.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_FETCH_HERITRIX_INDEX_PAGE);
             return null;
         }
     }
@@ -61,8 +60,7 @@ public class Heritrix {
         ArrayList<Job> jobs = new ArrayList<Job>();
         Elements jobLinks = Jsoup.parse(getIndexPage()).select("a[href~=job/]");
         if (jobLinks.isEmpty()) {
-            System.out.println("ERROR: Failed to parse or there aren't any crawling jobs.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_PARSE_JOB_LIST);
         } else {
             for (Element e : jobLinks) {
                 jobs.add(new Job(this, e.text()));
@@ -71,14 +69,13 @@ public class Heritrix {
         return jobs;
     }
 
-    private String fetchJobsDirectory() {
+    private String fetchJobsDirectory() { // TODO test fetch jobs directory - real directory or URL ?! is this needed in store() ???
         Elements jobsDirLinks = Jsoup.parse(getIndexPage()).select("a[href=jobsdir]");
         if (jobsDirLinks.isEmpty()) {
-            System.out.println("ERROR: Failed to parse jobs directory.");
-            System.exit(1); // TODO EXIT WITH ERROR CODE
+            new ErrorHandler(ErrorType.FAILED_TO_PARSE_JOBS_DIRECTORY);
             return null;
         } else {
             return jobsDirLinks.first().text();
-        }        
+        }
     }
 }
