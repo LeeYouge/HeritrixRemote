@@ -7,7 +7,9 @@ import hu.juranyi.zsolt.heritrixremote.model.HeritrixCall;
 import hu.juranyi.zsolt.heritrixremote.model.Job;
 import hu.juranyi.zsolt.heritrixremote.model.JobState;
 import hu.juranyi.zsolt.heritrixremote.model.ObjectCounter;
+import hu.juranyi.zsolt.heritrixremote.model.TextFile;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -17,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * With HeritrixRemote you can easily control your running Heritrix especially
@@ -118,7 +122,7 @@ public class HeritrixRemote {
                     new HeritrixCall(heritrix).path("job/" + job.getDir()).data("action=" + action).getResponse();
                     // TODO should I check something here?
                 } catch (Exception ex) {
-                    new ErrorHandler(ErrorType.FAILED_TO_PERFORM_JOB_ACTION);
+                    new ErrorHandler(ErrorType.FAILED_TO_PERFORM_ACTION);
                 }
             } else { // job has inappropriate state
                 System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());
@@ -151,7 +155,7 @@ public class HeritrixRemote {
         }
 
         // table footer
-        // TODO test stats summary
+        System.out.println();
         String sumFormat = "%6d %s\n";
         System.out.printf(sumFormat, heritrix.getJobs().size(), "TOTAL JOBS");
         for (JobState state : JobState.values()) {
@@ -161,23 +165,86 @@ public class HeritrixRemote {
         }
     }
 
-    private static void createCommand() { // TODO IMPLEMENT createCommand()
-        // will not use fetchNeededJobs nor basicAction
-        // receives:
-        // arg[3] = URL1[,URL2,...]
-        // and optionally arg[4] = "use" and arg[5] = CXML_NAME
-        // hibaüzi, ha nem szabványos URL: (https?|ftp)://.+\..+        
-        // hibaüzi, ha már van ilyen job
-        // call create
-        // if no "use" parameter
-        // - cxml = get new job's cxml
-        // else
-        // - cxml = load user specified cxml
-        // URL-ekben cserélni "&" -> "&amp;"
-        // insert seed urls
-        // put cxml
-        // XML put-nál üres body jön ha sikeres volt
-        // call rescan!
+    private static void createCommand() {
+        List<String> URLs = new ArrayList<String>();
+        for (String URL : arguments[3].split(",")) {
+            if (URL.matches("(https?|ftp)://.+\\..+")) {
+                URLs.add(URL);
+            } else {
+                System.out.println("Removed invalid URL: " + URL);
+            }
+        }
+        if (URLs.isEmpty()) {
+            new ErrorHandler(ErrorType.NO_VALID_URLS_SPECIFIED);
+        } else {
+            String jobdir = Job.URLtoDirectoryName(URLs.get(0));
+            // TODO getJobs, determine if already exists - if yes -> JOB_ALREADY_EXISTS
+            // it's not too important, recreating does not cause errors :-)
+
+            System.out.println("Creating job '" + jobdir + "'");
+            try {
+                new HeritrixCall(heritrix).data("action=create&createpath=" + jobdir).getResponse();
+            } catch (Exception ex) {
+                new ErrorHandler(ErrorType.FAILED_TO_PERFORM_ACTION);
+            }
+
+            System.out.println("Fetching CXML...");
+            String[] oldCXML = null;
+            if (arguments.length >= 6 && arguments[4].equalsIgnoreCase("use")) {
+                TextFile f = new TextFile(arguments[5]);
+                if (!f.load()) {
+                    new ErrorHandler(ErrorType.FAILED_TO_LOAD_YOUR_CXML);
+                } else {
+                    f.getLines().toArray();
+                }
+            } else {
+                oldCXML = new Job(heritrix, jobdir).getCXML().split("\n");
+            }
+
+            System.out.println("Inserting URLs...");
+            TextFile newCXML = new TextFile("temp.cxml");
+            boolean inProp = false;
+            for (String line : oldCXML) {
+                if (inProp) {
+                    if (line.matches(".*</prop>.*")) {
+                        inProp = false;
+                    } else {
+                        continue; // skipping old seed URL lines
+                    }
+                }
+                
+                if (line.matches(".*metadata.operatorContactUrl=.*")) {
+                    line = "metadata.operatorContactUrl=http://127.0.0.1/"; // TODO contact URL from argument
+                }
+                
+                newCXML.getLines().add(line);
+                
+                if (line.matches(".*<prop[^>]+key=\"?seeds.textSource.value\"?.*")) {
+                    inProp = true;
+                    for (String URL : URLs) {
+                        newCXML.getLines().add(URL.replaceAll("&", "&amp;"));
+                    }
+                }
+            }
+            newCXML.save();
+
+            // push it
+            System.out.println("Pushing CXML...");
+            try {
+                String response = new HeritrixCall(heritrix).path("job/" + jobdir + "/jobdir/crawler-beans.cxml").file(new File("temp.cxml")).getResponse();
+                if (null != response && !response.isEmpty()) {
+                    new ErrorHandler(ErrorType.FAILED_TO_PUSH_CXML);
+                }
+            } catch (Exception ex) {
+                new ErrorHandler(ErrorType.FAILED_TO_PUSH_CXML);
+            }
+
+            try {
+                new HeritrixCall(heritrix).data("action=rescan").getResponse();
+            } catch (Exception ex) {
+                new ErrorHandler(ErrorType.FAILED_TO_PERFORM_ACTION);
+            }
+        }
     }
 
     private static void buildCommand() {

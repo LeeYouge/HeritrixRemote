@@ -75,7 +75,7 @@ public class Job {
 
     private String fetchCXML() {
         try {
-            return new HeritrixCall(heritrix).path("jobs/" + getDir() + "/crawler-beans.cxml").getResponse();
+            return new HeritrixCall(heritrix).path("job/" + getDir() + "/jobdir/crawler-beans.cxml").getResponse();
         } catch (Exception ex) {
             new ErrorHandler(ErrorType.FAILED_TO_FETCH_CXML);
             return null;
