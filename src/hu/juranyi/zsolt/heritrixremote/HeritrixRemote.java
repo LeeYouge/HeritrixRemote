@@ -51,7 +51,7 @@ public class HeritrixRemote {
                 Method commandMethod = HeritrixRemote.class.getDeclaredMethod(args[2] + "Command", (Class<?>[]) null);
                 commandMethod.invoke(null, (Object[]) null);
             } catch (NoSuchMethodException ex) {
-                printUsage();
+                new ErrorHandler(ErrorType.INVALID_PARAMETER_LIST);
             } catch (Exception ex) { // some bug crawls back up to here somehow
                 new ErrorHandler(ErrorType.UNKNOWN_BUG, ex);
             }
@@ -96,6 +96,7 @@ public class HeritrixRemote {
                 // invalid job state -> job id
                 String jobdir = arguments[3]; // id is the directory name
                 if (jobdir.matches("(https?|ftp)://.+\\..+")) { // id is the first seed URL
+                    jobdir = jobdir.split(",")[0]; // only need the first seed URL
                     jobdir = Job.URLtoDirectoryName(jobdir);
                 }
                 for (Job job : heritrix.getJobs()) {
@@ -166,6 +167,10 @@ public class HeritrixRemote {
     }
 
     private static void createCommand() {
+        if (arguments.length < 6 || !arguments[4].equalsIgnoreCase("use")) {
+            new ErrorHandler(ErrorType.INVALID_PARAMETER_LIST);
+        }
+
         List<String> URLs = new ArrayList<String>();
         for (String URL : arguments[3].split(",")) {
             if (URL.matches("(https?|ftp)://.+\\..+")) {
@@ -178,7 +183,7 @@ public class HeritrixRemote {
             new ErrorHandler(ErrorType.NO_VALID_URLS_SPECIFIED);
         } else {
             String jobdir = Job.URLtoDirectoryName(URLs.get(0));
-            // TODO getJobs, determine if already exists - if yes -> JOB_ALREADY_EXISTS
+            // TODO (not important) getJobs, determine if already exists - if yes -> JOB_ALREADY_EXISTS
             // it's not too important, recreating does not cause errors :-)
 
             System.out.println("Creating job '" + jobdir + "'");
@@ -188,23 +193,16 @@ public class HeritrixRemote {
                 new ErrorHandler(ErrorType.FAILED_TO_PERFORM_ACTION);
             }
 
-            System.out.println("Fetching CXML...");
-            String[] oldCXML = null;
-            if (arguments.length >= 6 && arguments[4].equalsIgnoreCase("use")) {
-                TextFile f = new TextFile(arguments[5]);
-                if (!f.load()) {
-                    new ErrorHandler(ErrorType.FAILED_TO_LOAD_YOUR_CXML);
-                } else {
-                    f.getLines().toArray();
-                }
-            } else {
-                oldCXML = new Job(heritrix, jobdir).getCXML().split("\n");
+            System.out.println("Reading your CXML...");
+            TextFile oldCXML = new TextFile(arguments[5]);
+            if (!oldCXML.load()) {
+                new ErrorHandler(ErrorType.FAILED_TO_LOAD_YOUR_CXML);
             }
 
             System.out.println("Inserting URLs...");
             TextFile newCXML = new TextFile("temp.cxml");
             boolean inProp = false;
-            for (String line : oldCXML) {
+            for (String line : oldCXML.getLines()) {
                 if (inProp) {
                     if (line.matches(".*</prop>.*")) {
                         inProp = false;
@@ -212,13 +210,10 @@ public class HeritrixRemote {
                         continue; // skipping old seed URL lines
                     }
                 }
-                
-                if (line.matches(".*metadata.operatorContactUrl=.*")) {
-                    line = "metadata.operatorContactUrl=http://127.0.0.1/"; // TODO contact URL from argument
-                }
-                
+
                 newCXML.getLines().add(line);
-                
+
+                // inserting seed URLs
                 if (line.matches(".*<prop[^>]+key=\"?seeds.textSource.value\"?.*")) {
                     inProp = true;
                     for (String URL : URLs) {

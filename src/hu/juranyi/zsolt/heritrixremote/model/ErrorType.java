@@ -10,6 +10,7 @@ public enum ErrorType {
     // application scope
     UNKNOWN_BUG(1, "Unknown bug!"),
     FAILED_TO_LOAD_RESOURCE(2, "Cannot load resource."),
+    INVALID_PARAMETER_LIST(3, "Invalid parameter list. Please run HeritrixRemote without parameters and read how to use it."),
     // heritrix scope
     FAILED_TO_FETCH_HERITRIX_INDEX_PAGE(10, "Failed to fetch Heritrix index page. Check your parameters, version of Heritrix, and if cURL is installed."),
     FAILED_TO_PARSE_JOBS_DIRECTORY(11, "Failed to parse jobs' directory."),

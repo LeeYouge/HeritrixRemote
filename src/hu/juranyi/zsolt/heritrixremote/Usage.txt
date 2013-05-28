@@ -53,8 +53,7 @@ status
     HeritrixRemote.jar localhost:8443 admin:admin status http://www.site.com/
     HeritrixRemote.jar localhost:8443 admin:admin status all
 
-
-create URL1[,URL2,URL3,...] [use CXML-NAME]
+create URL1[,URL2,URL3,...] use CXML-NAME
 
     Creates a job with the specified seed URLs. You can pass more than one URL
     separated by commas. Job identifier will be the first one. The name of the
@@ -63,10 +62,10 @@ create URL1[,URL2,URL3,...] [use CXML-NAME]
 
     Example: "http://www.site.com/" -> "http-www-site-com"
 
-    If you have an own crawler-beans.cxml template which only need the seed URLs
-    to be inserted, you can pass it to HeritrixRemote using the "use" argument
-    as shown above. HeritrixRemote will insert the seed URLs, then pushes the
-    file to Heritrix.
+    You must have an own crawler-beans.cxml template which only need the seed
+    URLs to be inserted. Don't forget to define the contact URL in the file!
+    HeritrixRemote will insert the seed URLs (and cuts off the old ones from the
+    file), then pushes the file to Heritrix.
 
 build
 
@@ -109,13 +108,22 @@ store JOB/FILTER ARCHIVE-DIRECTORY
      * selected jobs must be finished (jobs with different states will be
        skipped)
 
-    When calling "store", HeritrixRemote will move the contents of the job's
-    "mirror" directory to your archive directory, under a folder with the name
-    of the job's start date.
+    Example describing what "store" does:
 
-    Example:
-        heritrix/job/http-site-com/mirror/*
+    1. You have a job with seed URLs http://site1.com and http://site2.com.
 
-        will be moved to
+    2. Heritrix downloads files from these URLs to the following folders:
 
-        your-archive-directory/20130525/*
+        heritrix-dir/mirror/site1.com/
+        heritrix-dir/mirror/site2.com/
+
+    3. You call "store" for this job (using directory name, first seed URL, all
+       seed URLs separated by comma, or using the "finished" or "all" filter).
+
+    4. HeritrixRemote will move those folders to your archive directory, so they
+       will be found here:
+
+        archive-dir/YYYYMMDD/site1.com
+        archive-dir/YYYYMMDD/site2.com
+
+       Where YYYYMMDD is the launch date of the job.
