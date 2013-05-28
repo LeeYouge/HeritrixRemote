@@ -18,9 +18,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.Set;
 
 /**
  * With HeritrixRemote you can easily control your running Heritrix especially
@@ -269,11 +269,24 @@ public class HeritrixRemote {
     }
 
     private static void storeCommand() { // TODO IMPLEMENT storeCommand()
-        // args: store jobfilter/id archive-directory
-        // check-olni létrezik-e az archive directory, ha nem -> hiba
-        // check-olni, elérem-e a jobs directory-t, ha nem -> hiba
-        // job state must be finished
-        // az archive directory-ban létrehoz egy dátum mappát startDate alapján
-        // oda áthelyezi (system command-dal?) a jobdir/mirror mappa tartalmát
+        if (arguments.length < 5) {
+            new ErrorHandler(ErrorType.INVALID_PARAMETER_LIST);
+        }
+
+        String heritrixDir = heritrix.getJobsDirectory(); // TODO cut off "job/?$"
+
+        for (Job job : fetchNeededJobs()) {
+            if (job.getState().equals(JobState.FINISHED)) {
+                // TODO mkdir arg[5] + "/" + jobStartDateString   =: jobArchiveDir
+                for (String seedURL : job.getSeedURLs()) {
+                    // TODO URL -> host
+                    // TODO move dir (heritrixDir + "mirror/" + host) -> jobArchiveDir
+                    // TODO on error: print out directories then new ErrorHandler(ErrorType.FAILED_TO_MOVE_DIRECTORY)
+                    // system command ? commons.io ?
+                }
+            } else {
+                System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());
+            }
+        }
     }
 }
