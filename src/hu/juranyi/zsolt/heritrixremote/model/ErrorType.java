@@ -16,6 +16,7 @@ public enum ErrorType {
     FAILED_TO_PARSE_JOBS_DIRECTORY(11, "Failed to parse jobs' directory."),
     FAILED_TO_PARSE_JOB_LIST(12, "Failed to parse job list or there isn't any jobs."),
     NO_MATCHING_JOBS(13, "No jobs match the given id or filter."),
+    HERITRIX_MIRROR_DIR_NOT_FOUND(14, "Cannot find Heritrix's 'mirror' directory. Please check if you are running HeritrixRemote on the same machine as Heritrix."),
     // job scope
     FAILED_TO_PERFORM_ACTION(20, "Failed to perform action."),
     FAILED_TO_FETCH_CXML(21, "Failed to fetch crawler-beans.cxml."),

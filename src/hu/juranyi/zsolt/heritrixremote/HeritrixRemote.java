@@ -18,9 +18,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import org.apache.commons.io.FileUtils;
 
 /**
  * With HeritrixRemote you can easily control your running Heritrix especially
@@ -268,21 +267,32 @@ public class HeritrixRemote {
         // TODO wait (?)        
     }
 
-    private static void storeCommand() { // TODO IMPLEMENT storeCommand()
+    private static void storeCommand() {
         if (arguments.length < 5) {
             new ErrorHandler(ErrorType.INVALID_PARAMETER_LIST);
         }
 
-        String heritrixDir = heritrix.getJobsDirectory(); // TODO cut off "job/?$"
+        String heritrixMirrorDir = heritrix.getJobsDirectory().replaceAll("job.?$", "mirror/");
+        if (!(new File(heritrixMirrorDir).exists())) {
+            new ErrorHandler(ErrorType.HERITRIX_MIRROR_DIR_NOT_FOUND);
+        }
 
         for (Job job : fetchNeededJobs()) {
             if (job.getState().equals(JobState.FINISHED)) {
-                // TODO mkdir arg[5] + "/" + jobStartDateString   =: jobArchiveDir
+                String startDateString = new SimpleDateFormat("yyyyMMdd").format(job.getStartDate());
+                String archiveDir = arguments[5].replaceAll("/$", "") + "/" + startDateString + "/";
                 for (String seedURL : job.getSeedURLs()) {
-                    // TODO URL -> host
-                    // TODO move dir (heritrixDir + "mirror/" + host) -> jobArchiveDir
-                    // TODO on error: print out directories then new ErrorHandler(ErrorType.FAILED_TO_MOVE_DIRECTORY)
-                    // system command ? commons.io ?
+                    String host = seedURL.replaceAll(".*://", "").replaceAll("/.*$", "");
+                    File sourceDir = new File(heritrixMirrorDir + host);
+                    File destDir = new File(archiveDir + host);
+                    System.out.println("Moving " + sourceDir + " to " + destDir);
+                    try {
+                        FileUtils.moveDirectory(sourceDir, destDir);
+                    } catch (IOException ex) {
+                        System.out.println("Failed to move directory.");
+                        // Not always an error: can come up when a job contains
+                        // more than one seed URLs with the same host.
+                    }
                 }
             } else {
                 System.out.println("Skipping " + job.getDir() + ", its state is " + job.getState().toString());

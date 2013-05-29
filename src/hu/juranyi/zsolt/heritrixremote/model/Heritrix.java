@@ -69,7 +69,7 @@ public class Heritrix {
         return jobs;
     }
 
-    private String fetchJobsDirectory() { // TODO test fetch jobs directory - real directory or URL ?! is this needed in store() ???
+    private String fetchJobsDirectory() {
         Elements jobsDirLinks = Jsoup.parse(getIndexPage()).select("a[href=jobsdir]");
         if (jobsDirLinks.isEmpty()) {
             new ErrorHandler(ErrorType.FAILED_TO_PARSE_JOBS_DIRECTORY);
