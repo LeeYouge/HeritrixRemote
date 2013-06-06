@@ -82,16 +82,16 @@ public class Job {
         }
     }
 
-    private List<String> fetchSeedURLs() { // TODO test fetch seed urls
+    private List<String> fetchSeedURLs() {
         ArrayList<String> seedURLs = new ArrayList<String>();
         Elements props = Jsoup.parse(getCXML()).select("prop[key=seeds.textSource.value]");
         if (props.isEmpty()) {
             new ErrorHandler(ErrorType.FAILED_TO_PARSE_SEED_URLS);
         } else {
             String seedURLsStr = props.first().text();
-            for (String seedURL : seedURLsStr.split("\n")) {
+            for (String seedURL : seedURLsStr.split("[ \n]")) {
                 seedURL = seedURL.trim();
-                if (!seedURL.startsWith("#")) {
+                if (seedURL.matches("(https?|ftp)://.*\\..*")) {
                     seedURLs.add(seedURL);
                 }
             }
@@ -116,7 +116,7 @@ public class Job {
         }
     }
 
-    private Date fetchStartDate() { // TODO test start date with jobs configured with MirrorWriter !!!
+    private Date fetchStartDate() {
         try {
             String response = new HeritrixCall(heritrix).path("jobsdir/" + getDir() + "/job.log").getResponse();
             String date = null;

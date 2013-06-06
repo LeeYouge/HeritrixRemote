@@ -1,8 +1,7 @@
 HeritrixRemote
 ==============
 
-###Version: -
-####*Under development :-)*
+###Version: 1.0
 
 =
 
@@ -33,4 +32,13 @@ HeritrixRemote
 
 This application is based on [Heritrix 3.x API Guide](https://webarchive.jira.com/wiki/display/Heritrix/Heritrix+3.x+API+Guide).
 
+I tested it with *Heritrix 3.1.1*.
+
 I developed this program according to our needs at my workplace (especially the "store" command), but I tried to make it more universal.
+
+
+##5. Features in the future - *ideas, plans*
+
+It may be great if *HeritrixRemote* could have the option to create a job without a CXML template and help configuring the job in that case. Command line arguments should be accepted for job configuration, such as "within-domain", "mirror-writer" and "contact-url <URL>".
+
+A "describe job" command can also be useful, it should print detailed information about a job: directory, seed URLs, configuration, size and of course job state and start date.

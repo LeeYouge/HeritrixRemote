@@ -40,7 +40,7 @@ public class CURL implements IRESTClient {
     }
 
     @Override
-    public void request() throws Exception { // TODO TEST request()
+    public void request() throws Exception {
         String curl = "curl DATA -k -u AUTH --anyauth --location URL";
         curl = curl.replace("AUTH", usernameAndPassword).replace("URL", targetURL);
         if (null != data) {

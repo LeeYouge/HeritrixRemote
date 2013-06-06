@@ -29,7 +29,7 @@ import org.apache.commons.io.FileUtils;
  */
 public class HeritrixRemote {
     // TODO javadoc, make all private -> protected
-    // TODO error handling - wouldn't it be prettier using HRException(ErrorType) instead of ErrorHandler? and exceptions crawl back to main where they be handled?
+    // TODO (not important) error handling - wouldn't it be prettier using HRException(ErrorType) instead of ErrorHandler? and exceptions crawl back to main where they be handled?
 
     public static final String VERSION = "1.0b";
     public static Heritrix heritrix;
@@ -39,12 +39,13 @@ public class HeritrixRemote {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        printHeader();
         if (args.length < 4) {
+            printHeader();
             printUsage();
         } else {
             arguments = args;
             heritrix = new Heritrix(args[0], args[1]);
+            System.out.println(new Date());
             try {
                 // calling xxxCommand() - it should exit when an error occurs!
                 Method commandMethod = HeritrixRemote.class.getDeclaredMethod(args[2] + "Command", (Class<?>[]) null);
@@ -52,6 +53,7 @@ public class HeritrixRemote {
             } catch (NoSuchMethodException ex) {
                 new ErrorHandler(ErrorType.INVALID_PARAMETER_LIST);
             } catch (Exception ex) { // some bug crawls back up to here somehow
+                printHeader();
                 new ErrorHandler(ErrorType.UNKNOWN_BUG, ex);
             }
         }
@@ -137,16 +139,20 @@ public class HeritrixRemote {
     private static void statusCommand() {
         String lineFormat = "%-8s | %-15s | %s\n";
 
+        List<Job> neededJobs = fetchNeededJobs();
+
         // table header
-        System.out.printf(lineFormat, "STATE", "START TIME", "JOB DIRECTORY");
-        for (int i = 0; i < 78; i++) {
-            System.out.print(((9 == i || 27 == i) ? "+" : "-"));
+        if (neededJobs.size() < 2) {
+            System.out.printf(lineFormat, "STATE", "START TIME", "JOB DIRECTORY");
+            for (int i = 0; i < 78; i++) {
+                System.out.print(((9 == i || 27 == i) ? "+" : "-"));
+            }
+            System.out.println();
         }
-        System.out.println();
 
         // table rows
         ObjectCounter<JobState> counter = new ObjectCounter<JobState>();
-        for (Job job : fetchNeededJobs()) {
+        for (Job job : neededJobs) {
             Date startDate = job.getStartDate();
             JobState state = job.getState();
             counter.add(state);
@@ -247,7 +253,7 @@ public class HeritrixRemote {
 
     private static void launchCommand() {
         basicAction("launch", new JobState[]{JobState.READY});
-        // TODO wait (?)
+        // need wait after!
     }
 
     private static void unpauseCommand() {
@@ -264,7 +270,7 @@ public class HeritrixRemote {
 
     private static void terminateCommand() {
         basicAction("terminate", new JobState[]{JobState.PAUSED, JobState.RUNNING});
-        // TODO wait (?)        
+        // need wait after!      
     }
 
     private static void storeCommand() {
@@ -279,8 +285,9 @@ public class HeritrixRemote {
 
         for (Job job : fetchNeededJobs()) {
             if (job.getState().equals(JobState.FINISHED)) {
+                System.out.println("FINISHED: " + job.getDir());
                 String startDateString = new SimpleDateFormat("yyyyMMdd").format(job.getStartDate());
-                String archiveDir = arguments[5].replaceAll("/$", "") + "/" + startDateString + "/";
+                String archiveDir = arguments[4].replaceAll("/$", "") + "/" + startDateString + "/";
                 for (String seedURL : job.getSeedURLs()) {
                     String host = seedURL.replaceAll(".*://", "").replaceAll("/.*$", "");
                     File sourceDir = new File(heritrixMirrorDir + host);
