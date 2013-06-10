@@ -22,7 +22,7 @@ public class ShellExec {
 
     public void exec() throws IOException, InterruptedException {
         Process proc = Runtime.getRuntime().exec(command);
-        proc.waitFor();
+        proc.waitFor(); // TODO BUG: when there are more than 338 jobs, this freezes when fetching Heritrix index page
 
         BufferedReader reader;
         StringBuilder builder;
