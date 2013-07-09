@@ -13,7 +13,7 @@ public enum ErrorType {
     INVALID_PARAMETER_LIST(3, "Invalid parameter list. Please run HeritrixRemote without parameters and read how to use it."),
     // heritrix scope
     FAILED_TO_FETCH_HERITRIX_INDEX_PAGE(10, "Failed to fetch Heritrix index page. Check your parameters, version of Heritrix, and if cURL is installed."),
-    FAILED_TO_PARSE_JOBS_DIRECTORY(11, "Failed to parse jobs' directory."),
+    FAILED_TO_PARSE_JOBS_DIRECTORY(11, "Failed to parse jobs directory."),
     FAILED_TO_PARSE_JOB_LIST(12, "Failed to parse job list or there isn't any jobs."),
     NO_MATCHING_JOBS(13, "No jobs match the given id or filter."),
     HERITRIX_MIRROR_DIR_NOT_FOUND(14, "Cannot find Heritrix's 'mirror' directory. Please check if you are running HeritrixRemote on the same machine as Heritrix."),

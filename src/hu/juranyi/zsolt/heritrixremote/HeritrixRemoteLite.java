@@ -15,11 +15,13 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 
 /**
- * Lite version of HeritrixRemote - created because HeritrixRemote seems to fail
- * fetching Heritrix index page when there are more than 338 job; so this
- * version does not fetch Heritrix index page, so has no job filters, and no
- * error handling, just pure command sending. Also, this version contains only
- * functions and output needed at my workplace.
+ * Lite version of HeritrixRemote - created as a workaround because
+ * HeritrixRemote seemed to fail (freeze) fetching Heritrix index page when
+ * there are more than 338 jobs. So this version does not fetch Heritrix index
+ * page, so has no job filters, and no error handling, just pure command
+ * sending. Also, this version contains only functions and output needed at my
+ * workplace. Later I found the solution for the index page fetching, so
+ * HeritrixRemote is fully functional.
  *
  * @author Zsolt Jurányi
  */
@@ -53,8 +55,8 @@ public class HeritrixRemoteLite {
                 basicAction(args[3], "teardown", new JobState[]{JobState.READY, JobState.PAUSED, JobState.FINISHED});
             } else if (args[2].equals("terminate")) {
                 basicAction(args[3], "terminate", new JobState[]{JobState.PAUSED, JobState.RUNNING});
-            } else if (args[2].equals("store")) { // 0:host 1:auth 2:status 3:ulrs/jobdir 4:archivedir
-                if (args.length < 5) {
+            } else if (args[2].equals("store")) { // 0:host 1:auth 2:status 3:ulrs/jobdir 4:heritrixdir 5:archivedir
+                if (args.length < 6) {
                     printUsage();
                 } else {
                     store(args);
@@ -68,7 +70,7 @@ public class HeritrixRemoteLite {
         System.out.println("Arguments:");
         System.out.println("<host> <auth> create <urls> use <cxml>");
         System.out.println("<host> <auth> build|launch|pause|unpause|terminate|teardown <jobdir OR urls>");
-        System.out.println("<host> <auth> store <jobdir OR urls> <archive directory>");
+        System.out.println("<host> <auth> store <jobdir OR urls> <heritrix directory> <archive directory>");
     }
 
     private static void create(String[] args) {
@@ -188,18 +190,18 @@ public class HeritrixRemoteLite {
     }
 
     private static void store(String[] args) {
-        String heritrixMirrorDir = heritrix.getJobsDirectory().replaceAll("job.?$", "mirror/");
-        if (!(new File(heritrixMirrorDir).exists())) {
-            System.out.println("No mirror dir.");
-            return;
-        }
+        /*String heritrixMirrorDir = heritrix.getJobsDirectory().replaceAll("job.?$", "mirror/");
+         if (!(new File(heritrixMirrorDir).exists())) {
+         System.out.println("No mirror dir.");
+         return;
+         }*/
+        String heritrixMirrorDir = args[4] + "/mirror/";
 
         Job job = recognizeJob(args[3]);
 
         if (job.getState().equals(JobState.FINISHED)) {
-            System.out.println("FINISHED: " + job.getDir());
             String startDateString = new SimpleDateFormat("yyyyMMdd").format(job.getStartDate());
-            String archiveDir = args[4].replaceAll("/$", "") + "/" + startDateString + "/";
+            String archiveDir = args[5].replaceAll("/$", "") + "/" + startDateString + "/";
             boolean success = false;
             for (String seedURL : job.getSeedURLs()) {
                 String host = seedURL.replaceAll(".*://", "").replaceAll("/.*$", "");

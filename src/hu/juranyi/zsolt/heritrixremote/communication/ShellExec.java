@@ -1,8 +1,6 @@
 package hu.juranyi.zsolt.heritrixremote.communication;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 /**
  * Communication with the OS shell: command execution and output fetching.
@@ -21,30 +19,18 @@ public class ShellExec {
     }
 
     public void exec() throws IOException, InterruptedException {
+        // Thanks to: http://www.javaworld.com/javaworld/jw-12-2000/jw-1229-traps.html?page=4
         Process proc = Runtime.getRuntime().exec(command);
-        proc.waitFor(); // TODO BUG: when there are more than 338 jobs, this freezes when fetching Heritrix index page
 
-        BufferedReader reader;
-        StringBuilder builder;
-        String line;
+        StreamGobbler errorGobbler = new StreamGobbler(proc.getErrorStream());
+        StreamGobbler outputGobbler = new StreamGobbler(proc.getInputStream());
+        errorGobbler.start();
+        outputGobbler.start();
 
-        reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        builder = new StringBuilder();
-        while ((line = reader.readLine()) != null) {
-            builder.append(line);
-            builder.append("\n");
-        }
-        stdout = builder.toString();
+        exitCode = proc.waitFor();
 
-        reader = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-        builder = new StringBuilder();
-        while ((line = reader.readLine()) != null) {
-            builder.append(line);
-            builder.append("\n");
-        }
-        stderr = builder.toString();
-
-        exitCode = proc.exitValue();
+        stderr = errorGobbler.getStreamAsString();
+        stdout = outputGobbler.getStreamAsString();
     }
 
     public String getCommand() {
