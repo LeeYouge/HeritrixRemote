@@ -92,7 +92,7 @@ public class HeritrixRemoteLite {
             //new HeritrixCall(heritrix).data("action=create&createpath=" + jobdir).getResponse();
 
             // We must avoid fetching the response (Heritrix index page):
-            String curl = "curl DATA -k -u AUTH --anyauth --location URL";
+            String curl = "curl DATA -k -u AUTH --anyauth --location URL -3";
             curl = curl.replace("AUTH", heritrix.getUserPass()).replace("URL", "https://" + heritrix.getHostPort() + "/engine");
             curl = curl.replace("DATA", "-d " + "action=create&createpath=" + jobdir);
             Process proc = Runtime.getRuntime().exec(curl);

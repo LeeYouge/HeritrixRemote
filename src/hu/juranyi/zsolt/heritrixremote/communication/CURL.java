@@ -41,7 +41,7 @@ public class CURL implements IRESTClient {
 
     @Override
     public void request() throws Exception {
-        String curl = "curl DATA -k -u AUTH --anyauth --location URL";
+        String curl = "curl DATA -k -u AUTH --anyauth --location URL -3";
         curl = curl.replace("AUTH", usernameAndPassword).replace("URL", targetURL);
         if (null != data) {
             curl = curl.replace("DATA", "-d " + data);
