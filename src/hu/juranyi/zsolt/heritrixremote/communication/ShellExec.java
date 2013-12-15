@@ -19,13 +19,18 @@ public class ShellExec {
     }
 
     public void exec() throws IOException, InterruptedException {
-        // Thanks to: http://www.javaworld.com/javaworld/jw-12-2000/jw-1229-traps.html?page=4
+        // Thanks to:
+        // http://www.javaworld.com/javaworld/jw-12-2000/jw-1229-traps.html?page=4
+        // http://viralpatel.net/blogs/how-to-execute-command-prompt-command-view-output-java/
         Process proc = Runtime.getRuntime().exec(command);
 
         StreamGobbler errorGobbler = new StreamGobbler(proc.getErrorStream());
         StreamGobbler outputGobbler = new StreamGobbler(proc.getInputStream());
         errorGobbler.start();
         outputGobbler.start();
+
+        errorGobbler.join(10000);
+        outputGobbler.join(10000);
 
         exitCode = proc.waitFor();
 
